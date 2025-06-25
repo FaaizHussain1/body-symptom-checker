@@ -1,17 +1,22 @@
+
 import { useSymptoms } from "@/contexts/symptoms-context"
-import { bodyParts } from "@/utils/data/body-parts"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { AlertTriangle, Download, RotateCcw, Pill, Heart, Home, Stethoscope, Activity } from "lucide-react"
 import html2canvas from "html2canvas"
-import { useRef } from "react"
-import { getAllTreatmentsForSymptoms } from "@/utils/data/treatment-data"
+import { useRef, useState } from "react"
 
-export const TreatmentRecommendations: React.FC<{}> = () => {
+// Add this import at the top
+import "./screenshot-styles.css"
+import { getAllTreatmentsForSymptoms } from "@/utils/data/treatment-data"
+import { bodyParts } from "@/utils/data/body-parts"
+
+export const  TreatmentRecommendations = () => {
   const { state, dispatch } = useSymptoms()
   const contentRef = useRef<HTMLDivElement>(null)
+  const [isGeneratingScreenshot, setIsGeneratingScreenshot] = useState(false)
 
   const selectedSymptomIds = state.selectedSymptoms.map((s) => s.symptom.id)
   const treatments = getAllTreatmentsForSymptoms(selectedSymptomIds)
@@ -65,20 +70,109 @@ export const TreatmentRecommendations: React.FC<{}> = () => {
 
   const handleScreenshot = async () => {
     if (contentRef.current) {
+      setIsGeneratingScreenshot(true)
       try {
-        const canvas = await html2canvas(contentRef.current, {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        const originalElement = contentRef.current
+        const clonedElement = originalElement.cloneNode(true) as HTMLElement
+
+        const replaceOklchColors = (element: HTMLElement) => {
+          const walker = document.createTreeWalker(element, NodeFilter.SHOW_ELEMENT, null)
+
+          const elements: HTMLElement[] = []
+          let node = walker.nextNode()
+          while (node) {
+            elements.push(node as HTMLElement)
+            node = walker.nextNode()
+          }
+
+          elements.forEach((el) => {
+            const computedStyle = window.getComputedStyle(el)
+            const style = el.style
+
+            const properties = [
+              "color",
+              "backgroundColor",
+              "borderColor",
+              "borderTopColor",
+              "borderRightColor",
+              "borderBottomColor",
+              "borderLeftColor",
+            ]
+
+            properties.forEach((prop) => {
+              const value = computedStyle.getPropertyValue(prop)
+              if (value && !value.includes("oklch")) {
+                style.setProperty(prop, value)
+              }
+            })
+          })
+        }
+
+        replaceOklchColors(clonedElement)
+
+        clonedElement.style.position = "absolute"
+        clonedElement.style.left = "-9999px"
+        clonedElement.style.top = "0"
+        document.body.appendChild(clonedElement)
+
+        const canvas = await html2canvas(clonedElement, {
           backgroundColor: "#ffffff",
           scale: 2,
           logging: false,
           useCORS: true,
+          allowTaint: true,
+          height: clonedElement.scrollHeight,
+          width: clonedElement.scrollWidth,
+          scrollX: 0,
+          scrollY: 0,
+          ignoreElements: (element) => {
+            return element.tagName === "SCRIPT" || element.tagName === "STYLE"
+          },
         })
+        document.body.removeChild(clonedElement)
 
         const link = document.createElement("a")
-        link.download = `symptoms-report-${new Date().toISOString().split("T")[0]}.png`
-        link.href = canvas.toDataURL()
+        const timestamp = new Date().toISOString().split("T")[0]
+        const patientName = state.userDemographics?.name ? `-${state.userDemographics.name.replace(/\s+/g, "-")}` : ""
+        link.download = `sleep-apnea-report${patientName}-${timestamp}.png`
+        link.href = canvas.toDataURL("image/png", 1.0)
+
+        document.body.appendChild(link)
         link.click()
+        document.body.removeChild(link)
+
+        console.log("Screenshot saved successfully!")
       } catch (error) {
         console.error("Error taking screenshot:", error)
+
+        try {
+          const canvas = await html2canvas(contentRef.current, {
+            backgroundColor: "#ffffff",
+            scale: 1,
+            logging: true,
+            useCORS: false,
+            allowTaint: false,
+          })
+
+          const link = document.createElement("a")
+          const timestamp = new Date().toISOString().split("T")[0]
+          link.download = `sleep-apnea-report-${timestamp}.png`
+          link.href = canvas.toDataURL("image/png", 0.8)
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+
+          console.log("Screenshot saved with fallback method!")
+        } catch (fallbackError) {
+          console.error("Fallback screenshot also failed:", fallbackError)
+          alert(
+            "Failed to generate screenshot. This might be due to browser compatibility issues with modern CSS colors.",
+          )
+        }
+      } finally {
+        setIsGeneratingScreenshot(false)
       }
     }
   }
@@ -109,10 +203,10 @@ export const TreatmentRecommendations: React.FC<{}> = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleScreenshot} variant="outline">
+            {/* <Button onClick={handleScreenshot} variant="outline" disabled={isGeneratingScreenshot}>
               <Download className="h-4 w-4 mr-2" />
-              Save Report
-            </Button>
+              {isGeneratingScreenshot ? "Generating..." : "Save Report"}
+            </Button> */}
             <Button onClick={() => dispatch({ type: "START_OVER" })} variant="outline">
               <RotateCcw className="h-4 w-4 mr-2" />
               Start Over
@@ -120,7 +214,7 @@ export const TreatmentRecommendations: React.FC<{}> = () => {
           </div>
         </div>
 
-        <div ref={contentRef} className="space-y-6">
+        <div ref={contentRef} className="space-y-6 screenshot-safe">
           {/* User Info */}
           <Card>
             <CardHeader>
