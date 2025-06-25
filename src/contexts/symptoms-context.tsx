@@ -21,9 +21,11 @@ export interface SelectedSymptom {
 }
 
 export interface UserDemographics {
-  age: number
+  age: number | null
   sex: "male" | "female" | "other"
   name?: string
+  email?: string
+  phone?: string
 }
 
 export interface Treatment {

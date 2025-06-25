@@ -1,20 +1,22 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useSymptoms } from "@/contexts/symptoms-context"
+import { useSymptoms, type UserDemographics } from "@/contexts/symptoms-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { User, Calendar, Users } from "lucide-react"
+import { User, Calendar, Users, Mail, Phone } from "lucide-react"
 
 export const DemographicsForm: React.FC<{}> = () => {
   const { dispatch } = useSymptoms()
-  const [formData, setFormData] = useState({
-    name: "",
-    age: "",
-    sex: "" as "male" | "female" | "other" | "",
+  const [formData, setFormData] = useState<UserDemographics>({
+    name: undefined,
+    age: null,
+    sex: "other",
+    email: "",
+    phone: "",
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -24,15 +26,17 @@ export const DemographicsForm: React.FC<{}> = () => {
         type: "SET_DEMOGRAPHICS",
         payload: {
           name: formData.name || undefined,
-          age: Number.parseInt(formData.age),
+          age: formData.age,
           sex: formData.sex as "male" | "female" | "other",
+          email: formData.email || undefined,
+          phone: formData.phone || undefined,
         },
       })
     }
   }
 
   const isValid =
-    formData.age && formData.sex && Number.parseInt(formData.age) > 0 && Number.parseInt(formData.age) < 120
+    formData.age && formData.sex && formData.age > 0 && formData.age < 120
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -59,6 +63,32 @@ export const DemographicsForm: React.FC<{}> = () => {
                 onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Phone (Optional)
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="Enter your phone number"
+                value={formData.phone}
+                onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email (Optional)
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="age" className="flex items-center gap-2">
@@ -72,7 +102,7 @@ export const DemographicsForm: React.FC<{}> = () => {
                 min="1"
                 max="120"
                 value={formData.age}
-                onChange={(e) => setFormData((prev) => ({ ...prev, age: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, age: Number(e.target.value) }))}
                 required
               />
             </div>

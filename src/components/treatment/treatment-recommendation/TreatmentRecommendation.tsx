@@ -228,10 +228,22 @@ export const  TreatmentRecommendations = () => {
                     <p className="font-medium">{state.userDemographics.name}</p>
                   </div>
                 )}
+                {state.userDemographics?.email && (
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium">{state.userDemographics.email}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-gray-600">Age</p>
                   <p className="font-medium">{state.userDemographics?.age} years</p>
                 </div>
+                {state.userDemographics?.phone && (
+                  <div>
+                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="font-medium">{state.userDemographics.phone}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-gray-600">Sex</p>
                   <p className="font-medium capitalize">{state.userDemographics?.sex}</p>
