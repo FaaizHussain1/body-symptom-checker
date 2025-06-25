@@ -101,7 +101,7 @@ export const DemographicsForm: React.FC<{}> = () => {
                 placeholder="Enter your age"
                 min="1"
                 max="120"
-                value={formData.age}
+                value={formData.age || ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, age: Number(e.target.value) }))}
                 required
               />
